@@ -1,0 +1,42 @@
+#Inicialización
+datos <- read.csv("COVID19.csv")
+datos <- read.csv("COVID19.csv")
+datos <- data.frame(datos)
+
+library(tidyverse)
+library(caret)
+library(MASS)
+library(neuralnet)
+
+set.seed(5)
+datos_particionados <- createDataPartition(datos$patient_outcome, p= 0.8, list=FALSE)
+train_data <- datos[datos_particionados,]
+test_data <- datos[-datos_particionados,]
+
+##########Regresión Logística
+
+logistic_regression <- glm(patient_outcome~., data=train_data, family=binomial)
+logistic_regression_STEP <- stepAIC(logistic_regression, trace=TRUE)
+
+probabilities_logistic_regression <- predict(logistic_regression_STEP, test_data, type = "response")
+prediction_logistic_regression <- ifelse(probabilities_logistic_regression > 0.5, 1, 0)
+
+accuracy_logistic_regression <- mean(prediction_logistic_regression==test_data$patient_outcome)*100
+
+###########Red neuronal
+train_data_NN <- model.matrix(~ patient_outcome + age + country + travel_history + fever + cough + fatigue + chills + chest_distress + mialgia + hypertension -1, data = train_data)
+test_data_NN <- model.matrix(~ patient_outcome + age + country + travel_history + fever + cough + fatigue + chills + chest_distress + mialgia + hypertension -1, data = test_data)
+train_data_NN <- as.data.frame(train_data_NN)
+test_data_NN <- as.data.frame(test_data_NN)
+
+names(train_data_NN) <- gsub(" ", "_", names(train_data_NN))
+names(test_data_NN) <- gsub(" ", "_", names(test_data_NN))
+
+formula_NN <- as.formula(paste0('patient_outcome ~', paste(names(train_data_NN[-1]),collapse = '+')))
+
+NN <- neuralnet(formula_NN, data = train_data_NN, linear.output = FALSE)
+
+probabilities_NN <- predict(NN, test_data_NN, type="response")
+prediction_NN <- ifelse(probabilities_NN > 0.5, 1, 0)
+
+accuracy_NN <- mean(prediction_NN==test_data_NN$patient_outcome)*100
