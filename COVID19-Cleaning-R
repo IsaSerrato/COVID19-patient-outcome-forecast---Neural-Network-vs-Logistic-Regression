@@ -1,0 +1,57 @@
+#Cleaning and adaptation of the ScientificData-COVID19 database according to patients' sympsymptomatology and chronic diseases.
+datos_original <- read.csv("latestdata.csv")
+#summary(datos_original)
+
+nuevos_datos <- data.frame(datos_original$age, datos_original$sex, datos_original$country, datos_original$date_admission_hospital, datos_original$symptoms, datos_original$travel_history_dates, datos_original$travel_history_location, datos_original$chronic_disease, datos_original$travel_history_binary, datos_original$outcome)
+
+names(nuevos_datos)[names(nuevos_datos) == "datos_original.age"] <- "age"
+names(nuevos_datos)[names(nuevos_datos) == "datos_original.sex"] <- "sex"
+names(nuevos_datos)[names(nuevos_datos) == "datos_original.country"] <- "country"
+names(nuevos_datos)[names(nuevos_datos) == "datos_original.date_admission_hospital"] <- "admission_hospital"
+names(nuevos_datos)[names(nuevos_datos) == "datos_original.symptoms"] <- "symptoms"
+names(nuevos_datos)[names(nuevos_datos) == "datos_original.travel_history_dates"] <- "travel_history_dates"
+names(nuevos_datos)[names(nuevos_datos) == "datos_original.travel_history_location"] <- "travel_history_location"
+names(nuevos_datos)[names(nuevos_datos) == "datos_original.chronic_disease"] <- "chronic_disease"
+names(nuevos_datos)[names(nuevos_datos) == "datos_original.travel_history_binary"] <- "travel_history_binary"
+names(nuevos_datos)[names(nuevos_datos) == "datos_original.outcome"] <- "outcome"
+
+library(dplyr)
+nuevos_datos <- filter(nuevos_datos, !grepl("-",age) & age != "" & sex != "" & country != "", outcome != "")
+
+levels(nuevos_datos$admission_hospital) <- c(levels(nuevos_datos$admission_hospital), 1, 0) 
+nuevos_datos$admission_hospital[nuevos_datos$admission_hospital != ""]  <- 1
+nuevos_datos$admission_hospital[nuevos_datos$admission_hospital == ""]  <- 0
+
+nuevos_datos <- mutate(nuevos_datos, travel_history = ifelse(nuevos_datos$travel_history_dates != "" | nuevos_datos$travel_history_location != "" | nuevos_datos$travel_history_binary != "", 1, 0))
+nuevos_datos$travel_history_dates <- NULL
+nuevos_datos$travel_history_location <- NULL
+nuevos_datos$travel_history_binary <- NULL
+nuevos_datos$travel_history[is.na(nuevos_datos$travel_history)] <- 0
+
+nuevos_datos <- mutate(nuevos_datos, fever = ifelse(grepl("fever",symptoms),1,0))
+nuevos_datos <- mutate(nuevos_datos, cough = ifelse(grepl("cough",symptoms),1,0))
+nuevos_datos <- mutate(nuevos_datos, runny_nose = ifelse(grepl("nose",symptoms),1,0))
+nuevos_datos <- mutate(nuevos_datos, headache = ifelse(grepl("headache",symptoms),1,0))
+nuevos_datos <- mutate(nuevos_datos, fatigue = ifelse(grepl("fatigue",symptoms)|grepl("somnolence",symptoms)|grepl("fatigure",symptoms),1,0))
+nuevos_datos <- mutate(nuevos_datos, chills = ifelse(grepl("chill",symptoms),1,0))
+nuevos_datos <- mutate(nuevos_datos, sore_throat = ifelse(grepl("sore throat",symptoms),1,0))
+nuevos_datos <- mutate(nuevos_datos, chest_distress = ifelse(grepl("chest",symptoms),1,0))
+nuevos_datos <- mutate(nuevos_datos, mialgia = ifelse(grepl("myalgia",symptoms)|grepl("mialgia",symptoms)|grepl("muscular",symptoms),1,0))
+nuevos_datos <- mutate(nuevos_datos, dyspnea = ifelse(grepl("dyspnea",symptoms)|grepl("breath",symptoms)|grepl("respiratory",symptoms),1,0))
+nuevos_datos <- mutate(nuevos_datos, diarrhea = ifelse(grepl("diarrhea",symptoms),1,0))
+nuevos_datos$symptoms <- NULL
+
+nuevos_datos <- mutate(nuevos_datos, diabetes = ifelse(grepl("diabetes",chronic_disease),1,0))
+nuevos_datos <- mutate(nuevos_datos, hypertension = ifelse(grepl("hypertension",chronic_disease),1,0))
+nuevos_datos <- mutate(nuevos_datos, coronary_heart_disease = ifelse(grepl("coronary heart",chronic_disease),1,0))
+nuevos_datos <- mutate(nuevos_datos, chronic_bronchitis = ifelse(grepl("chronic bronchitis",chronic_disease),1,0))
+nuevos_datos <- mutate(nuevos_datos, parkinson = ifelse(grepl("Parkinson",chronic_disease),1,0))
+nuevos_datos <- mutate(nuevos_datos, cerebral_infarction = ifelse(grepl("cerebral",chronic_disease),1,0))
+nuevos_datos <- mutate(nuevos_datos, cancer_record = ifelse(grepl("cancer",chronic_disease),1,0))
+nuevos_datos <- mutate(nuevos_datos, renal_insufficiency = ifelse(grepl("renal",chronic_disease),1,0))
+nuevos_datos$chronic_disease <- NULL
+
+nuevos_datos <- mutate(nuevos_datos, patient_outcome = ifelse(grepl("discharge",outcome)|grepl("stable",outcome)|grepl("recovered",outcome)|grepl("released",outcome),1,0))
+nuevos_datos$outcome <- NULL
+
+write.csv(nuevos_datos,'COVID19.csv')
